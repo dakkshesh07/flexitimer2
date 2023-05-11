@@ -50,10 +50,7 @@ void FlexiTimer2::set(unsigned long ms, void (*f)()) {
 void FlexiTimer2::set(unsigned long units, double resolution, void (*f)()) {
 	float prescaler = 0.0;
 	
-	if (units == 0)
-		time_units = 1;
-	else
-		time_units = units;
+	time_units = (!units) ? 1 : units;
 		
 	func = f;
 	
@@ -64,84 +61,88 @@ void FlexiTimer2::set(unsigned long units, double resolution, void (*f)()) {
 	ASSR &= ~(1<<AS2);
 	TIMSK2 &= ~(1<<OCIE2A);
 	
-	if ((F_CPU >= 1000000UL) && (F_CPU <= 16000000UL)) {	// prescaler set to 64
-		TCCR2B |= (1<<CS22);
-		TCCR2B &= ~((1<<CS21) | (1<<CS20));
-		prescaler = 64.0;
-	} else if (F_CPU < 1000000UL) {	// prescaler set to 8
-		TCCR2B |= (1<<CS21);
-		TCCR2B &= ~((1<<CS22) | (1<<CS20));
-		prescaler = 8.0;
-	} else { // F_CPU > 16Mhz, prescaler set to 128
-		TCCR2B |= ((1<<CS22) | (1<<CS20));
-		TCCR2B &= ~(1<<CS21);
-		prescaler = 128.0;
-	}
+#if (F_CPU >= 1000000L) && (F_CPU <= 16000000L)	// prescaler set to 64
+	TCCR2B |= (1<<CS22);
+	TCCR2B &= ~((1<<CS21) | (1<<CS20));
+	prescaler = 64.0;
+#elif (F_CPU < 1000000L)	// prescaler set to 8
+	TCCR2B |= (1<<CS21);
+	TCCR2B &= ~((1<<CS22) | (1<<CS20));
+	prescaler = 8.0;
+#else // F_CPU > 16Mhz, prescaler set to 128
+	TCCR2B |= ((1<<CS22) | (1<<CS20));
+	TCCR2B &= ~(1<<CS21);
+	prescaler = 128.0;
+#endif
+
 #elif defined (__AVR_ATmega8__)
 	TIMSK &= ~(1<<TOIE2);
 	TCCR2 &= ~((1<<WGM21) | (1<<WGM20));
 	TIMSK &= ~(1<<OCIE2);
 	ASSR &= ~(1<<AS2);
 	
-	if ((F_CPU >= 1000000UL) && (F_CPU <= 16000000UL)) {	// prescaler set to 64
-		TCCR2 |= (1<<CS22);
-		TCCR2 &= ~((1<<CS21) | (1<<CS20));
-		prescaler = 64.0;
-	} else if (F_CPU < 1000000UL) {	// prescaler set to 8
-		TCCR2 |= (1<<CS21);
-		TCCR2 &= ~((1<<CS22) | (1<<CS20));
-		prescaler = 8.0;
-	} else { // F_CPU > 16Mhz, prescaler set to 128
-		TCCR2 |= ((1<<CS22) && (1<<CS20));
-		TCCR2 &= ~(1<<CS21);
-		prescaler = 128.0;
-	}
+#if (F_CPU >= 1000000UL) && (F_CPU <= 16000000UL)	// prescaler set to 64
+	TCCR2 |= (1<<CS22);
+	TCCR2 &= ~((1<<CS21) | (1<<CS20));
+	prescaler = 64.0;
+#elif (F_CPU < 1000000UL)	// prescaler set to 8
+	TCCR2 |= (1<<CS21);
+	TCCR2 &= ~((1<<CS22) | (1<<CS20));
+	prescaler = 8.0;
+#else // F_CPU > 16Mhz, prescaler set to 128
+	TCCR2 |= ((1<<CS22) && (1<<CS20));
+	TCCR2 &= ~(1<<CS21);
+	prescaler = 128.0;
+#endif
+
 #elif defined (__AVR_ATmega128__)
 	TIMSK &= ~(1<<TOIE2);
 	TCCR2 &= ~((1<<WGM21) | (1<<WGM20));
 	TIMSK &= ~(1<<OCIE2);
 	
-	if ((F_CPU >= 1000000UL) && (F_CPU <= 16000000UL)) {	// prescaler set to 64
-		TCCR2 |= ((1<<CS21) | (1<<CS20));
-		TCCR2 &= ~(1<<CS22);
-		prescaler = 64.0;
-	} else if (F_CPU < 1000000UL) {	// prescaler set to 8
-		TCCR2 |= (1<<CS21);
-		TCCR2 &= ~((1<<CS22) | (1<<CS20));
-		prescaler = 8.0;
-	} else { // F_CPU > 16Mhz, prescaler set to 256
-		TCCR2 |= (1<<CS22);
-		TCCR2 &= ~((1<<CS21) | (1<<CS20));
-		prescaler = 256.0;
-	}
+#if (F_CPU >= 1000000UL) && (F_CPU <= 16000000UL)	// prescaler set to 64
+	TCCR2 |= ((1<<CS21) | (1<<CS20));
+	TCCR2 &= ~(1<<CS22);
+	prescaler = 64.0;
+#elif (F_CPU < 1000000UL)	// prescaler set to 8
+	TCCR2 |= (1<<CS21);
+	TCCR2 &= ~((1<<CS22) | (1<<CS20));
+	prescaler = 8.0;
+#else // F_CPU > 16Mhz, prescaler set to 256
+	TCCR2 |= (1<<CS22);
+	TCCR2 &= ~((1<<CS21) | (1<<CS20));
+	prescaler = 256.0;
+#endif
+
 #elif defined (__AVR_ATmega32U4__)
 	TCCR4B = 0;
 	TCCR4A = 0;
 	TCCR4C = 0;
 	TCCR4D = 0;
 	TCCR4E = 0;
-	if (F_CPU >= 16000000L) {
-		TCCR4B = (1<<CS43) | (1<<PSR4);
-		prescaler = 128.0;
-	} else if (F_CPU >= 8000000L) {
-		TCCR4B = (1<<CS42) | (1<<CS41) | (1<<CS40) | (1<<PSR4);
-		prescaler = 64.0;
-	} else if (F_CPU >= 4000000L) {
-		TCCR4B = (1<<CS42) | (1<<CS41) | (1<<PSR4);
-		prescaler = 32.0;
-	} else if (F_CPU >= 2000000L) {
-		TCCR4B = (1<<CS42) | (1<<CS40) | (1<<PSR4);
-		prescaler = 16.0;
-	} else if (F_CPU >= 1000000L) {
-		TCCR4B = (1<<CS42) | (1<<PSR4);
-		prescaler = 8.0;
-	} else if (F_CPU >= 500000L) {
-		TCCR4B = (1<<CS41) | (1<<CS40) | (1<<PSR4);
-		prescaler = 4.0;
-	} else {
-		TCCR4B = (1<<CS41) | (1<<PSR4);
-		prescaler = 2.0;
-	}
+
+#if (F_CPU >= 16000000L)
+	TCCR4B = (1<<CS43) | (1<<PSR4);
+	prescaler = 128.0;
+#elif (F_CPU >= 8000000L)
+	TCCR4B = (1<<CS42) | (1<<CS41) | (1<<CS40) | (1<<PSR4);
+	prescaler = 64.0;
+#elif (F_CPU >= 4000000L)
+	TCCR4B = (1<<CS42) | (1<<CS41) | (1<<PSR4);
+	prescaler = 32.0;
+#elif (F_CPU >= 2000000L)
+	TCCR4B = (1<<CS42) | (1<<CS40) | (1<<PSR4);
+	prescaler = 16.0;
+#elif (F_CPU >= 1000000L)
+	TCCR4B = (1<<CS42) | (1<<PSR4);
+	prescaler = 8.0;
+#elif (F_CPU >= 500000L)
+	TCCR4B = (1<<CS41) | (1<<CS40) | (1<<PSR4);
+	prescaler = 4.0;
+#else {
+	TCCR4B = (1<<CS41) | (1<<PSR4);
+	prescaler = 2.0;
+#endif
 	tcnt2 = (int)((float)F_CPU * resolution / prescaler) - 1;
 	OCR4C = tcnt2;
 	return;
